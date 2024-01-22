@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_with_db/form_example.dart';
 import 'package:flutter_with_db/home_page.dart';
+import 'package:flutter_with_db/route.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,7 +34,9 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: FormExample(),
+      debugShowCheckedModeBanner: false,
+      routes: routes,
     );
   }
 }

@@ -1,67 +1,62 @@
-import 'package:flutter/foundation.dart';
-import 'package:sqflite/sqflite.dart' as sql;
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_with_db/entity/student_entity.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 class SQLHelper {
-  static Future<void> createTables(sql.Database database) async {
-    await database.execute("""CREATE TABLE items(
+  // create table
+  static Future<void> createTables(Database database) async {
+    await database.execute("""CREATE TABLE  IF NOT EXISTS students(
         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-        title TEXT,
-        description TEXT,
+        name TEXT,
+        email TEXT,
         createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
       """);
   }
-// id: the id of a item
-// title, description: name and description of your activity
-// created_at: the time that the item was created. It will be automatically handled by SQLite
 
-  static Future<sql.Database> db() async {
-    return sql.openDatabase(
-      'dbtech.db',
-      version: 1,
-      onCreate: (sql.Database database, int version) async {
-        print("CREATE TABLE");
-        await createTables(database);
-      },
-    );
+  //create database
+  static Future<Database> db() async {
+    var factory = databaseFactoryFfiWeb;
+    var db = await factory.openDatabase('my_db.db');
+    await createTables(db);
+    return db;
   }
 
-  // Create new item (journal)
-  static Future<int> createItem(String title, String? descrption) async {
+  //insert data
+  static Future<int> createItem(Student student) async {
     final db = await SQLHelper.db();
 
-    final data = {'title': title, 'description': descrption};
-    final id = await db.insert('items', data,
-        conflictAlgorithm: sql.ConflictAlgorithm.replace);
+    final data = student.toMap();
+    final id = await db.insert('students', data,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     return id;
   }
 
-  // Read all items (journals)
-  static Future<List<Map<String, dynamic>>> getItems() async {
+  //get all data
+  static Future<List<Student>> getItems() async {
     final db = await SQLHelper.db();
-    return db.query('items', orderBy: "id");
+    List<Map<String, Object?>> data = await db.query('students');
+    return data.map((e) => Student.valueFromJson(e)).toList();
   }
 
-  // Read a single item by id
-  // The app doesn't use this method but I put here in case you want to see it
-  static Future<List<Map<String, dynamic>>> getItem(int id) async {
+  //get by id
+  static Future<Student> getItem(int id) async {
     final db = await SQLHelper.db();
-    return db.query('items', where: "id = ?", whereArgs: [id], limit: 1);
+    var data =
+        await db.query('students', where: "id = ?", whereArgs: [id], limit: 1);
+    return data.map((e) => Student.valueFromJson(e)).toList().first;
   }
 
   // Update an item by id
-  static Future<int> updateItem(
-      int id, String title, String? descrption) async {
+  static Future<int> updateItem(Student student) async {
     final db = await SQLHelper.db();
 
-    final data = {
-      'title': title,
-      'description': descrption,
-      'createdAt': DateTime.now().toString()
-    };
+    final data = student.toMap();
 
-    final result =
-        await db.update('items', data, where: "id = ?", whereArgs: [id]);
+    final result = await db
+        .update('students', data, where: "id = ?", whereArgs: [student.id]);
     return result;
   }
 
@@ -69,7 +64,7 @@ class SQLHelper {
   static Future<void> deleteItem(int id) async {
     final db = await SQLHelper.db();
     try {
-      await db.delete("items", where: "id = ?", whereArgs: [id]);
+      await db.delete("students", where: "id = ?", whereArgs: [id]);
     } catch (err) {
       debugPrint("Something went wrong when deleting an item: $err");
     }
